@@ -8,14 +8,18 @@ terraform {
 }
 
 provider "azurerm" {
-  features {}
+  features {
+    resource_group {
+      prevent_deletion_if_contains_resources = false
+    }
+  }
 
   subscription_id = "d4167df8-f2f0-4eb0-b98f-35c2e80c8001"
 }
 
 resource "azurerm_resource_group" "mtc-rg" {
   name     = "mtc-resources"
-  location = "East Us"
+  location = "Sweden central"
   tags = {
     environment = "dev"
   }
@@ -72,8 +76,8 @@ resource "azurerm_public_ip" "mtc-ip" {
   name                = "mtc-ip"
   resource_group_name = azurerm_resource_group.mtc-rg.name
   location            = azurerm_resource_group.mtc-rg.location
-  allocation_method   = "Dynamic"
-  sku                 = "Basic"
+  allocation_method   = "Static"
+  sku                 = "Standard"
 
   tags = {
     environment = "dev"
@@ -101,15 +105,17 @@ resource "azurerm_linux_virtual_machine" "mtc-vm" {
   name                = "mtc-vm"
   resource_group_name = azurerm_resource_group.mtc-rg.name
   location            = azurerm_resource_group.mtc-rg.location
-  size                = "Standard_B1s"
+  size                = "Standard_E2as_v5"
   admin_username      = "adminuser"
   network_interface_ids = [
     azurerm_network_interface.mtc-nic.id,
   ]
 
+  custom_data = filebase64("customdata.tpl")
+
   admin_ssh_key {
     username   = "adminuser"
-    public_key = file("~/.ssh/id_rsa.pub")
+    public_key = file("~/.ssh/mtcazurekey.pub")
   }
 
   os_disk {
